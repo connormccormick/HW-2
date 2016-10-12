@@ -1,6 +1,6 @@
 ---
 title: "MATH 216 Homework 2"
-author: "WRITE YOUR NAME HERE"
+author: "Connor McCormick"
 output:
   html_document:
     toc: true
@@ -10,9 +10,12 @@ output:
 ---
 
 ```{r, echo=FALSE, message=FALSE}
+library(tidyverse)
 library(ggplot2)
 library(dplyr)
 library(readr) 
+library(ggthemes)
+library(forcats)
 ```
 
 
@@ -29,11 +32,11 @@ profiles <- read_csv(file="profiles.csv")
 
 Please indicate
 
-* Who you collaborated with:
-* Roughly how much time you spent on this HW so far:
-* The URL of the RPubs published URL [here](https://www.nhl.com/).
-* What gave you the most trouble:
-* Any comments you have:
+* Who you collaborated with: Trisha
+* Roughly how much time you spent on this HW so far:4 hours
+* The URL of the RPubs published URL [here](http://rpubs.com/connormccormick/hw2).
+* What gave you the most trouble:How to show how pet ownership varies by gender
+* Any comments you have:I am still very unsure if I actually completed the right things
 
 
 
@@ -51,6 +54,84 @@ predict a user's gender based on these variables.
 
 ```{r, echo=TRUE, message=TRUE, warning=TRUE, fig.width=8, fig.height=4.5}
 
+petowners <- profiles %>%
+  select(sex, income, job, pets, height, age, body_type, sign) %>%
+  mutate(petowners = fct_recode(pets,
+                            # New name = old name
+                           "dogs" = "has dogs",
+                           "dogs" = "has dogs and dislikes cats",
+                           "dogs" = "has dogs and likes cats",
+                           "both" = "has dogs and has cats",
+                           "cats" = "has cats",
+                           "cats" = "dislikes dogs and has cats",
+                           "cats" = "likes dogs and has cats",
+                           "neither" = "dislikes cats",
+                           "neither" = "dislikes dogs",
+                           "neither" = "dislikes dogs and dislikes cats",
+                           "neither" = "dislikes dogs and likes cats",
+                           "neither" = "likes cats",
+                           "neither" = "likes dogs",
+                           "neither" = "likes dogs and dislikes cats",
+                           "neither" = "likes dogs and likes cats"
+  )) 
+
+people <- petowners %>%
+  mutate(sex = fct_recode(sex, "male" = "m", "female" = "f"))
+  
+
+astrology <- people %>%
+  mutate(job = fct_recode(job, 
+                          "other" = "military",
+                          "other" = "unemployed",
+                          "other" = "transportation",
+                          "other" = "retired",
+                          "other" = "rather not say",
+                          "other" = "political / government",
+                          "other" = "clerical / administrative",
+                          "other" = "hospitality / travel",
+                          "other" = "law / legal services",
+                          "other" = "construction / craftsmanship"
+    ))
+
+
+
+filtered <- astrology %>%
+  select(sex, job, income, petowners, sign) %>%
+  group_by(job, sex)%>%
+  tally() %>% 
+  rename(counted = n)
+
+ggplot(filtered, aes(x=fct_reorder(job, counted, median, na.rm=TRUE), y = counted, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  labs(title="Jobs by Sex", y='Number of Individuals', x='Job Description')
+
+
+dog <- astrology %>%
+  select(sex, job, income, petowners, sign) %>%
+  group_by(petowners, sex) %>%
+  tally() %>% 
+  rename(dogsandcats = n) 
+
+ggplot(dog, aes(x=fct_reorder(petowners, dogsandcats, median, na.rm=TRUE), y = dogsandcats, fill = sex)) +
+  geom_bar(stat = "identity", position = "fill", color = "violetred4", width = .5) +
+  coord_flip() +
+  labs(title="Pet Ownership", y='Proportion Male and Female', x='Pet Owner Status')
+
+
+income <- astrology %>%
+  select(sex, job, income, petowners, sign) %>%
+  filter(income >=0) %>%
+  group_by(income, sex) %>%
+  tally() %>% 
+  rename(incomestats = n)
+
+ggplot(income, aes(x=as.factor(income), y = incomestats, fill = sex)) +
+  geom_bar(stat = "identity", position = "fill", width = .5) +
+  coord_flip() +
+  labs(title="Income", y='Proportion Male and Female', x='Income in USD')
+
+
 ```
 
 
@@ -65,4 +146,6 @@ Shiny app that
 * Instead of having a radio button to select the genre of movie (`Action`,
 `Animation`, `Comedy`, etc), have a radio button that allows you to toggle
 between comedies and non-comedies. This app should be simpler.
+
+
 
