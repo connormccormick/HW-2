@@ -32,8 +32,8 @@ profiles <- read_csv(file="profiles.csv")
 
 Please indicate
 
-* Who you collaborated with: Trisha
-* Roughly how much time you spent on this HW so far:4 hours
+* Who you collaborated with: Trisha, Bianca
+* Roughly how much time you spent on this HW so far:7 hours
 * The URL of the RPubs published URL [here](http://rpubs.com/connormccormick/hw2).
 * What gave you the most trouble:How to show how pet ownership varies by gender
 * Any comments you have:I am still very unsure if I actually completed the right things
@@ -47,12 +47,29 @@ specifically on the relationship between gender and
 
 * `income`
 * `job`
-* One more categorical variable of your choice
-
+* `petowners`
 all keeping in mind in HW-3, you will be fitting a logistic regression to
 predict a user's gender based on these variables.
 
 ```{r, echo=TRUE, message=TRUE, warning=TRUE, fig.width=8, fig.height=4.5}
+
+profiles <- profiles %>%
+  mutate(is_female = ifelse(sex=="f", 1, 0))
+
+
+gender <- profiles %>%
+  mutate(sex = fct_recode(sex, "Female" = "f", "Male" = "m")) %>%
+  group_by(sex) %>%
+  tally()%>%
+  rename(gender = n) %>%
+  mutate(prop = gender/sum(gender))
+
+ggplot(gender, aes(x = sex, y = prop)) +
+  geom_bar(stat = "identity", position = "dodge", fill = "cadetblue2", color = "darkslateblue", width = .65) +
+  theme_minimal() +
+  labs(title = "Proportion by Sex on OkCupid", x = "Sex", y = "Proportion") 
+
+# cleaning variables
 
 petowners <- profiles %>%
   select(sex, income, job, pets, height, age, body_type, sign) %>%
@@ -94,6 +111,7 @@ astrology <- people %>%
     ))
 
 
+#Jobs variable
 
 filtered <- astrology %>%
   select(sex, job, income, petowners, sign) %>%
@@ -101,33 +119,58 @@ filtered <- astrology %>%
   tally() %>% 
   rename(counted = n)
 
-ggplot(filtered, aes(x=fct_reorder(job, counted, median, na.rm=TRUE), y = counted, fill = sex)) +
+filtered$prob <- filtered$counted/sum(filtered$counted)
+
+filtered <- filtered %>%
+  mutate(conditional = ifelse(sex == "female", prob/.4023121, prob/(1-.4023121) ))
+
+ggplot(filtered, aes(x=fct_reorder(job, counted, na.rm=TRUE), y = counted, fill = sex)) +
   geom_bar(stat = "identity", position = "dodge") +
   coord_flip() +
   labs(title="Jobs by Sex", y='Number of Individuals', x='Job Description')
 
+ggplot(filtered, aes(x=fct_reorder(job, conditional, median, na.rm=TRUE), y = conditional, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  labs(title="Conditional Probability of Being M/F Given Your Job", y='Conditional Probability', x='Job Description')
 
+# Petowners variable
 dog <- astrology %>%
   select(sex, job, income, petowners, sign) %>%
   group_by(petowners, sex) %>%
   tally() %>% 
   rename(dogsandcats = n) 
 
+dog$prob <- dog$dogsandcats/sum(dog$dogsandcats)
+
+dog <- dog %>%
+  mutate(conditional = ifelse(sex == "female", prob/.4023121, prob/(1-.4023121) )) %>%
+  mutate(prop = dogsandcats/sum(dogsandcats))
+
 ggplot(dog, aes(x=fct_reorder(petowners, dogsandcats, median, na.rm=TRUE), y = dogsandcats, fill = sex)) +
   geom_bar(stat = "identity", position = "fill", color = "violetred4", width = .5) +
   coord_flip() +
-  labs(title="Pet Ownership", y='Proportion Male and Female', x='Pet Owner Status')
+  labs(title="Pet Ownership", y='Proportion Male and Female', x='Pet Owner Status') 
 
+ggplot(dog, aes(x=fct_reorder(petowners, conditional, median, na.rm=TRUE), y = conditional, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge", color = "violetred4", width = .5) +
+  coord_flip() +
+  labs(title="Conditional Probability of Pet Ownership", y='Conditional Probability', x='Pet Owner Status') 
+
+# income variable 
 
 income <- astrology %>%
   select(sex, job, income, petowners, sign) %>%
-  filter(income >=0) %>%
   group_by(income, sex) %>%
   tally() %>% 
-  rename(incomestats = n)
+  rename(incomestats = n) %>%
+  mutate(sum = sum(incomestats))
 
-ggplot(income, aes(x=as.factor(income), y = incomestats, fill = sex)) +
-  geom_bar(stat = "identity", position = "fill", width = .5) +
+income <- income %>%
+  mutate(names = paste(income, ": (n = ", sum, ")", sep=""))
+
+ggplot(income, aes(x=fct_reorder(names, income), y = incomestats, fill = sex)) +
+  geom_bar(stat = "identity", position = "fill", width = .6, color = "violetred4") +
   coord_flip() +
   labs(title="Income", y='Proportion Male and Female', x='Income in USD')
 

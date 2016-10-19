@@ -1,6 +1,6 @@
 ---
 title: "MATH 216 Homework 2 Shiny App"
-author: "WRITE YOUR NAME HERE"
+author: "Connor"
 output: html_document
 runtime: shiny
 ---
@@ -36,13 +36,16 @@ renderPlot({
   movietype <- movies %>%
     select_("rating", "budget", input$genre) %>%
     rename_("movietype" = input$genre) %>%
-    filter(movietype==1)
+    filter(movietype==1) %>%
+    group_by(budget) %>%
+    summarize(avgrate = mean(rating))
 
-  ggplot(movietype, aes(x=budget, y=rating)) +
-  geom_point(color = "violetred4") +
-  geom_smooth(se = FALSE, color = "cadetblue1") +
+  ggplot(movietype, aes(x=budget, y=avgrate)) +
+  geom_point(color = "violetred4", alpha = .75, size = 2) +
+  geom_smooth(se = FALSE, color = "darkslateblue", size = 2) +
   theme_minimal()+
-  labs(title="Does the budget of a movie effect its IMDB Rating", x="Budget", y="Rating in IMDB")
+  scale_x_log10() +
+  labs(title="Does the budget of a movie effect its IMDB Rating?", x="Log10(Budget)", y="Rating in IMDB")
   
 })
 ```
